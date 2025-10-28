@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Private Chat App</title>
+    <title>NexusChat - Modern Messaging</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -13,607 +13,741 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        }
+
+        :root {
+            --primary: #8b5cf6;
+            --primary-dark: #7c3aed;
+            --primary-light: #a78bfa;
+            --secondary: #06d6a0;
+            --accent: #f59e0b;
+            --error: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --dark: #0f172a;
+            --darker: #020617;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --gray-light: #cbd5e1;
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --card-border: rgba(255, 255, 255, 0.12);
         }
 
         body {
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
+            color: var(--light);
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+            animation: float 20s infinite linear;
+            z-index: -1;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-50px, -50px) rotate(360deg); }
         }
 
         .container {
             width: 100%;
-            max-width: 900px;
-            background-color: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            max-width: 1200px;
             height: 90vh;
-        }
-
-        header {
-            background: linear-gradient(to right, #4a00e0, #8e2de2);
-            color: white;
-            padding: 20px;
-            text-align: center;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            display: flex;
+            border: 1px solid var(--card-border);
             position: relative;
         }
 
-        header h1 {
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
-
-        header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .user-status {
+        /* Auth Styles */
+        .auth-container {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: #ff7e5f;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(2, 6, 23, 0.9);
+            backdrop-filter: blur(15px);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-weight: bold;
+            z-index: 100;
+            padding: 20px;
         }
 
-        .chat-container {
-            display: flex;
-            flex: 1;
+        .auth-box {
+            width: 100%;
+            max-width: 440px;
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--card-border);
+            animation: slideUp 0.5s ease;
+            position: relative;
             overflow: hidden;
         }
 
-        .users-panel {
-            width: 30%;
-            background-color: #f8f9fa;
-            border-right: 1px solid #e9ecef;
-            padding: 15px;
-            overflow-y: auto;
+        .auth-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
         }
 
-        .users-panel h3 {
-            margin-bottom: 15px;
-            color: #495057;
-            font-size: 16px;
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .user-list {
-            list-style: none;
-        }
-
-        .user-item {
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .user-item:hover {
-            background-color: #e9ecef;
-        }
-
-        .user-item.active {
-            background-color: #4a00e0;
-            color: white;
-        }
-
-        .user-avatar-small {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            background-color: #ff7e5f;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .chat-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-header {
-            padding: 15px 20px;
-            border-bottom: 1px solid #e9ecef;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .chat-header h3 {
-            color: #495057;
-        }
-
-        .messages-container {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            background-color: #f8f9fa;
-        }
-
-        .message {
-            max-width: 70%;
-            padding: 12px 16px;
-            margin-bottom: 15px;
-            border-radius: 18px;
-            position: relative;
-            word-wrap: break-word;
-        }
-
-        .message.sent {
-            background-color: #4a00e0;
-            color: white;
-            margin-left: auto;
-            border-bottom-right-radius: 5px;
-        }
-
-        .message.received {
-            background-color: white;
-            color: #333;
-            border: 1px solid #e9ecef;
-            border-bottom-left-radius: 5px;
-        }
-
-        .message-info {
-            font-size: 12px;
-            opacity: 0.7;
-            margin-top: 5px;
-            text-align: right;
-        }
-
-        .input-container {
-            padding: 15px 20px;
-            border-top: 1px solid #e9ecef;
-            display: flex;
-            gap: 10px;
-        }
-
-        .message-input {
-            flex: 1;
-            padding: 12px 15px;
-            border: 1px solid #e9ecef;
-            border-radius: 25px;
-            outline: none;
-            font-size: 16px;
-        }
-
-        .message-input:focus {
-            border-color: #4a00e0;
-        }
-
-        .send-btn {
-            background-color: #4a00e0;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .send-btn:hover {
-            background-color: #3a00b0;
-            transform: scale(1.05);
-        }
-
-        .login-container {
-            padding: 30px;
+        .auth-header {
             text-align: center;
+            margin-bottom: 30px;
         }
 
-        .login-form {
-            max-width: 400px;
-            margin: 0 auto;
+        .auth-logo {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .auth-header h2 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        .auth-header p {
+            color: var(--gray);
+            font-size: 16px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 5px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 14px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: var(--gray);
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 15px;
+        }
+
+        .auth-tab.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.3);
         }
 
         .form-group {
             margin-bottom: 20px;
-            text-align: left;
+            position: relative;
         }
 
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            color: #495057;
+            font-size: 14px;
+            color: var(--gray);
             font-weight: 500;
         }
 
         .form-control {
             width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 16px;
+            padding: 16px 20px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            color: var(--light);
+            font-size: 15px;
             outline: none;
+            transition: all 0.3s;
         }
 
         .form-control:focus {
-            border-color: #4a00e0;
+            border-color: var(--primary);
+            background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
         }
 
-        .btn {
-            padding: 12px 25px;
-            background-color: #4a00e0;
-            color: white;
+        .form-control.error {
+            border-color: var(--error);
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+        }
+
+        .form-control.success {
+            border-color: var(--success);
+        }
+
+        .password-input {
+            position: relative;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
             border: none;
-            border-radius: 8px;
+            color: var(--gray);
+            cursor: pointer;
             font-size: 16px;
+        }
+
+        .validation-message {
+            font-size: 13px;
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0;
+            transform: translateY(-5px);
+            transition: all 0.3s;
+        }
+
+        .validation-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .validation-message.error {
+            color: var(--error);
+        }
+
+        .validation-message.success {
+            color: var(--success);
+        }
+
+        .validation-message.warning {
+            color: var(--warning);
+        }
+
+        .password-strength {
+            margin-top: 10px;
+        }
+
+        .strength-bar {
+            height: 6px;
+            background: var(--card-border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+
+        .strength-text {
+            font-size: 12px;
+            color: var(--gray);
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .auth-btn:active {
+            transform: translateY(0);
+        }
+
+        .auth-btn.loading {
+            pointer-events: none;
+        }
+
+        .auth-btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--card-border);
+        }
+
+        .auth-divider span {
+            padding: 0 15px;
+        }
+
+        .gmail-btn {
+            width: 100%;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .gmail-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .gmail-btn i {
+            color: #ea4335;
+            font-size: 18px;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 25px;
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        .auth-footer a {
+            color: var(--primary-light);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .auth-footer a:hover {
+            color: var(--secondary);
+        }
+
+        /* Chat Styles */
+        .sidebar {
+            width: 350px;
+            background: var(--card-bg);
+            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 25px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        .app-name {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .user-profile {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            position: relative;
+        }
+
+        .user-avatar::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--success);
+            border-radius: 50%;
+            bottom: 2px;
+            right: 2px;
+            border: 2px solid var(--darker);
+        }
+
+        .user-info h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .user-info p {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .logout-btn {
+            margin-left: auto;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            color: var(--gray);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logout-btn:hover {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent);
+        }
+
+        .search-container {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px 12px 40px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            color: var(--light);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary);
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+
+        .conversations {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .conversation-item {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+            position: relative;
+        }
+
+        .conversation-item:hover {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .conversation-item.active {
+            background: rgba(139, 92, 246, 0.2);
+            border-left-color: var(--primary);
+        }
+
+        .conversation-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .conversation-info {
+            flex: 1;
+        }
+
+        .conversation-info h4 {
+            font-size: 15px;
+            margin-bottom: 5px;
+        }
+
+        .conversation-info p {
+            font-size: 13px;
+            color: var(--gray);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .conversation-meta {
+            text-align: right;
+        }
+
+        .conversation-time {
+            font-size: 12px;
+            color: var(--gray);
+            margin-bottom: 5px;
+        }
+
+        .unread-count {
+            background: var(--accent);
+            color: white;
+            font-size: 12px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Chat Area Styles */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(15, 23, 42, 0.4);
+        }
+
+        .chat-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--card-bg);
+        }
+
+        .chat-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .chat-user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .chat-user-info h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .chat-user-info p {
+            font-size: 14px;
+            color: var(--success);
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            color: var(--gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
             transition: all 0.3s;
         }
 
-        .btn:hover {
-            background-color: #3a00b0;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            background-color: #4a00e0;
+        .chat-action-btn:hover {
+            background: var(--primary);
             color: white;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            transform: translateX(150%);
-            transition: transform 0.3s;
         }
 
-        .notification.show {
-            transform: translateX(0);
+        .messages-container {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        @media (max-width: 768px) {
-            .users-panel {
-                width: 100%;
-                display: none;
-            }
-            
-            .users-panel.active {
-                display: block;
-            }
-            
-            .chat-container {
-                flex-direction: column;
-            }
-            
-            .toggle-users {
-                display: block;
-            }
+        .message {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            position: relative;
+            animation: fadeIn 0.3s ease;
         }
 
-        .toggle-users {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            color: #495057;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1><i class="fas fa-comments"></i> Private Chat App</h1>
-            <p>Secure messaging with Firebase backend</p>
-            <div class="user-status">
-                <div class="user-avatar" id="currentUserAvatar">U</div>
-                <span id="currentUserName">User</span>
-            </div>
-        </header>
-
-        <div id="loginContainer" class="login-container">
-            <div class="login-form">
-                <h2>Welcome to Private Chat</h2>
-                <p>Please sign in to start chatting</p>
-                <div class="form-group">
-                    <label for="username">Your Name</label>
-                    <input type="text" id="username" class="form-control" placeholder="Enter your name">
-                </div>
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" class="form-control" placeholder="Enter your email">
-                </div>
-                <button id="loginBtn" class="btn">Sign In <i class="fas fa-sign-in-alt"></i></button>
-            </div>
-        </div>
-
-        <div id="chatContainer" class="chat-container hidden">
-            <div class="users-panel">
-                <h3>Online Users</h3>
-                <ul class="user-list" id="userList">
-                    <!-- Users will be populated here -->
-                </ul>
-            </div>
-            <div class="chat-panel">
-                <div class="chat-header">
-                    <button class="toggle-users"><i class="fas fa-users"></i></button>
-                    <h3>Select a user to start chatting</h3>
-                </div>
-                <div class="messages-container" id="messagesContainer">
-                    <!-- Messages will be displayed here -->
-                </div>
-                <div class="input-container">
-                    <input type="text" class="message-input" id="messageInput" placeholder="Type a message..." disabled>
-                    <button class="send-btn" id="sendBtn" disabled><i class="fas fa-paper-plane"></i></button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="notification" id="notification">
-        Message sent successfully!
-    </div>
-
-    <script>
-        // Firebase configuration
-        const firebaseConfig = {
-  apiKey: "AIzaSyB1fQdrmOJWDh4dEdQTFucj9BUeQmH_yew",
-  authDomain: "whatsapp-web-944f9.firebaseapp.com",
-  databaseURL: "https://whatsapp-web-944f9-default-rtdb.firebaseio.com",
-  projectId: "whatsapp-web-944f9",
-  storageBucket: "whatsapp-web-944f9.firebasestorage.app",
-  messagingSenderId: "975370289693",
-  appId: "1:975370289693:web:23390019b3b1c216a0fcf4"
-};
-
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-
-        // DOM Elements
-        const loginContainer = document.getElementById('loginContainer');
-        const chatContainer = document.getElementById('chatContainer');
-        const usernameInput = document.getElementById('username');
-        const emailInput = document.getElementById('email');
-        const loginBtn = document.getElementById('loginBtn');
-        const currentUserAvatar = document.getElementById('currentUserAvatar');
-        const currentUserName = document.getElementById('currentUserName');
-        const userList = document.getElementById('userList');
-        const messagesContainer = document.getElementById('messagesContainer');
-        const messageInput = document.getElementById('messageInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const notification = document.getElementById('notification');
-
-        // Application state
-        let currentUser = null;
-        let selectedUser = null;
-        let users = [];
-
-        // Mock users for demonstration
-        const mockUsers = [
-            { id: 'user1', name: 'Alex Johnson', email: 'alex@example.com' },
-            { id: 'user2', name: 'Maria Garcia', email: 'maria@example.com' },
-            { id: 'user3', name: 'David Smith', email: 'david@example.com' },
-            { id: 'user4', name: 'Sarah Williams', email: 'sarah@example.com' }
-        ];
-
-        // Initialize the app
-        function initApp() {
-            // For demo purposes, we'll use mock authentication
-            loginBtn.addEventListener('click', handleLogin);
-            sendBtn.addEventListener('click', sendMessage);
-            messageInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') sendMessage();
-            });
-
-            // Populate user list with mock users
-            populateUserList();
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        // Handle user login
-        function handleLogin() {
-            const username = usernameInput.value.trim();
-            const email = emailInput.value.trim();
-
-            if (!username || !email) {
-                showNotification('Please enter both name and email', 'error');
-                return;
-            }
-
-            // For demo, we'll create a simple user object
-            currentUser = {
-                id: 'currentUser',
-                name: username,
-                email: email
-            };
-
-            // Update UI
-            currentUserAvatar.textContent = username.charAt(0).toUpperCase();
-            currentUserName.textContent = username;
-
-            // Show chat interface
-            loginContainer.classList.add('hidden');
-            chatContainer.classList.remove('hidden');
-
-            showNotification(`Welcome, ${username}!`, 'success');
+        .message.sent {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
         }
 
-        // Populate user list
-        function populateUserList() {
-            userList.innerHTML = '';
-            mockUsers.forEach(user => {
-                const userItem = document.createElement('li');
-                userItem.className = 'user-item';
-                userItem.innerHTML = `
-                    <div class="user-avatar-small">${user.name.charAt(0).toUpperCase()}</div>
-                    <div>
-                        <div class="user-name">${user.name}</div>
-                        <div class="user-status-text">Online</div>
-                    </div>
-                `;
-                userItem.addEventListener('click', () => selectUser(user));
-                userList.appendChild(userItem);
-            });
+        .message.received {
+            background: rgba(255, 255, 255, 0.05);
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
         }
 
-        // Select a user to chat with
-        function selectUser('.user-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            event.currentTarget.classList.add('active');
-            
-            // Update chat header
-            document.querySelector('.chat-header h3').textContent = `Chat with ${user.name}`;
-            
-            // Enable message input
-            messageInput.disabled = false;
-            sendBtn.disabled = false;
-            messageInput.focus();
-            
-            // Load messages (in a real app, this would fetch from Firebase)
-            loadMessages();
+        .message-text {
+            margin-bottom: 8px;
+            line-height: 1.5;
         }
 
-        // Load messages for the selected user
-        function loadMessages() {
-            // Clear messages container
-            messagesContainer.innerHTML = '';
-            
-            // In a real app, we would fetch messages from Firebase
-            // For demo, we'll show some sample messages
-            const sampleMessages = [
-                { text: 'Hello there!', sender: selectedUser.id, timestamp: new Date(Date.now() - 3600000) },
-                { text: 'Hi! How are you?', sender: 'currentUser', timestamp: new Date(Date.now() - 3500000) },
-                { text: "I'm doing great, thanks! How about you?", sender: selectedUser.id, timestamp: new Date(Date.now() - 3400000) },
-                { text: "I'm good too. Just working on this chat app.", sender: 'currentUser', timestamp: new Date(Date.now() - 3300000) },
-                { text: "That's awesome! It looks really good.", sender: selectedUser.id, timestamp: new Date(Date.now() - 3200000) }
-            ];
-            
-            sampleMessages.forEach(msg => {
-                displayMessage(msg);
-            });
-            
-            // Scroll to bottom
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        .message-time {
+            font-size: 12px;
+            opacity: 0.7;
+            text-align: right;
         }
 
-        // Send a message
-        function sendMessage() {
-            const messageText = messageInput.value.trim();
-            
-            if (!messageText || !selectedUser) return;
-            
-            // Create message object
-            const message = {
-                text: messageText,
-                sender: 'currentUser',
-                receiver: selectedUser.id,
-                timestamp: new Date()
-            };
-            
-            // In a real app, we would save to Firebase here
-            // For demo, we'll just display it
-            displayMessage(message);
-            
-            // Clear input
-            messageInput.value = '';
-            
-            // Show notification
-            showNotification('Message sent!', 'success');
-            
-            // Scroll to bottom
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            
-            // Simulate a reply after a short delay
-            setTimeout(() => {
-                const replies = [
-                    "That's interesting!",
-                    "I see what you mean.",
-                    "Thanks for sharing that.",
-                    "Let me think about that.",
-                    "I agree with you."
-                ];
-                const randomReply = replies[Math.floor(Math.random() * replies.length)];
-                
-                const replyMessage = {
-                    text: randomReply,
-                    sender: selectedUser.id,
-                    receiver: 'currentUser',
-                    timestamp: new Date()
-                };
-                
-                displayMessage(replyMessage);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }, 1000 + Math.random() * 2000);
+        .message.received .message-time {
+            text-align: left;
         }
 
-        // Display a message in the chat
-        function displayMessage(message) {
-            const messageElement = document.createElement('div');
-            const isSent = message.sender === 'currentUser';
-            
-            messageElement.className = `message ${isSent ? 'sent' : 'received'}`;
-            messageElement.innerHTML = `
-                <div class="message-text">${message.text}</div>
-                <div class="message-info">${formatTime(message.timestamp)}</div>
-            `;
-            
-            messagesContainer.appendChild(messageElement);
+        .input-container {
+            padding: 20px 25px;
+            border-top: 1px solid var(--card-border);
+            display: flex;
+            gap: 15px;
+            background: var(--card-bg);
         }
 
-        // Format time for display
-        function formatTime(timestamp) {
-            const date = new Date(timestamp);
-            return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
-        }
-
-        // Show notification
-        function showNotification(message, type) {
-            notification.textContent = message;
-            notification.className = 'notification show';
-            
-            if (type === 'error') {
-                notification.style.backgroundColor = '#e74c3c';
-            } else {
-                notification.style.backgroundColor = '#4a00e0';
-            }
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
-
-        // Initialize the app when the page loads
-        window.addEventListener('DOMContentLoaded', initApp);
-    </script>
-</body>
-    </html>
+        .message-input {
+            flex: 1;
+            padding: 15px 20px;
+            bac
