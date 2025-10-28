@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusChat - Modern Messaging</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        }
+
+        :root {
+            --primary: #8b5cf6;
+            --primary-dark: #7c3aed;
+            --primary-light: #a78bfa;
+            --secondary: #06d6a0;
+            --accent: #f59e0b;
+            --error: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --dark: #0f172a;
+            --darker: #020617;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --gray-light: #cbd5e1;
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --card-border: rgba(255, 255, 255, 0.12);
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--light);
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+            animation: float 20s infinite linear;
+            z-index: -1;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-50px, -50px) rotate(360deg); }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            height: 90vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            display: flex;
+            border: 1px solid var(--card-border);
+            position: relative;
+        }
+
+        /* Auth Styles */
+        .auth-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(2, 6, 23, 0.9);
+            backdrop-filter: blur(15px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .auth-box {
+            width: 100%;
+            max-width: 440px;
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--card-border);
+            animation: slideUp 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .auth-logo {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .auth-header h2 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        .auth-header p {
+            color: var(--gray);
+            font-size: 16px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 5px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 14px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: var(--gray);
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 15px;
+        }
+
+        .auth-tab.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--gray);
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            color: var(--light);
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+
+        .form-control.error {
+            border-color: var(--error);
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+        }
+
+        .form-control.success {
+            border-color: var(--success);
+        }
+
+        .password-input {
+            position: relative;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--gray);
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .validation-message {
+            font-size: 13px;
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0;
+            transform: translateY(-5px);
+            transition: all 0.3s;
+        }
+
+        .validation-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .validation-message.error {
+            color: var(--error);
+        }
+
+        .validation-message.success {
+            color: var(--success);
+        }
+
+        .validation-message.warning {
+            color: var(--warning);
+        }
+
+        .password-strength {
+            margin-top: 10px;
+        }
+
+        .strength-bar {
+            height: 6px;
+            background: var(--card-border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+
+        .strength-text {
+            font-size: 12px;
+            color: var(--gray);
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .auth-btn:active {
+            transform: translateY(0);
+        }
+
+        .auth-btn.loading {
+            pointer-events: none;
+        }
+
+        .auth-btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--card-border);
+        }
+
+        .auth-divider span {
+            padding: 0 15px;
+        }
+
+        .gmail-btn {
+            width: 100%;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .gmail-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .gmail-btn i {
+            color: #ea4335;
+            font-size: 18px;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 25px;
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        .auth-footer a {
+            color: var(--primary-light);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .auth-footer a:hover {
+            color: var(--secondary);
+        }
+
+        /* Chat Styles */
+        .sidebar {
+            width: 350px;
+            background: var(--card-bg);
+            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 25px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        .app-name {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .user-profile {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            position: relative;
+        }
+
+        .user-avatar::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--success);
+            border-radius: 50%;
+            bottom: 2px;
+            right: 2px;
+            border: 2px solid var(--darker);
+        }
+
+        .user-info h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .user-info p {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .logout-btn {
+            margin-left: auto;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            color: var(--gray);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logout-btn:hover {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent);
+        }
+
+        .search-container {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px 12px 40px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            color: var(--light);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary);
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+
+        .conversations {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .conversation-item {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+            position: relative;
+        }
+
+        .conversation-item:hover {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .conversation-item.active {
+            background: rgba(139, 92, 246, 0.2);
+            border-left-color: var(--primary);
+        }
+
+        .conversation-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .conversation-info {
+            flex: 1;
+        }
+
+        .conversation-info h4 {
+            font-size: 15px;
+            margin-bottom: 5px;
+        }
+
+        .conversation-info p {
+            font-size: 13px;
+            color: var(--gray);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .conversation-meta {
+            text-align: right;
+        }
+
+        .conversation-time {
+            font-size: 12px;
+            color: var(--gray);
+            margin-bottom: 5px;
+        }
+
+        .unread-count {
+            background: var(--accent);
+            color: white;
+            font-size: 12px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Chat Area Styles */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(15, 23, 42, 0.4);
+        }
+
+        .chat-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--card-bg);
+        }
+
+        .chat-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .chat-user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .chat-user-info h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .chat-user-info p {
+            font-size: 14px;
+            color: var(--success);
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            color: var(--gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .chat-action-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.sent {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.received {
+            background: rgba(255, 255, 255, 0.05);
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-text {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .message-time {
+            font-size: 12px;
+            opacity: 0.7;
+            text-align: right;
+        }
+
+        .message.received .message-time {
+            text-align: left;
+        }
+
+        .input-container {
+            padding: 20px 25px;
+            border-top: 1px solid var(--card-border);
+            display: flex;
+            gap: 15px;
+            background: var(--card-bg);
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            border-radius: 15px;
+            color: var(--light);
+            font-size: 15px;
+            outline: none;
+            resize: none;
+            height: 50px;
+            transition: all 0.3s;
+        }
+
+        .message-input:focus {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .send-btn {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border: none;
+            border-radius: 15px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 15px 25px;
+            background: var(--primary);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transform: translateX(150%);
+            transition: transform 0.4s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--card-border);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: var(--success);
+        }
+
+        .notification.error {
+            background: var(--error);
+        }
+
+        .notification.warning {
+            background: var(--warning);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                height: 95vh;
+            }
+            
+            .sidebar {
+                width: 100%;
+                position: absolute;
+                z-index: 10;
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .mobile-toggle {
+                display: block;
+            }
+        }
+
+        .mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--light);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Auth Container -->
+        <div class="auth-container" id="authContainer">
+            <div class="auth-box">
+                <div class="auth-header">
+                    <div class="auth-logo">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h2>Welcome to NexusChat</h2>
+                    <p>Connect with friends in style</p>
+                </div>
+                
+                <div class="auth-tabs">
+                    <button class="auth-tab active" id="loginTab">Sign In</button>
+                    <button class="auth-tab" id="registerTab">Register</button>
+                </div>
+                
+                <!-- Login Form -->
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">Email Address</label>
+                        <input type="email" id="loginEmail" class="form-control" placeholder="Enter your email" required>
+                        <div class="validation-message" id="loginEmailError"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <div class="password-input">
+                            <input type="password" id="loginPassword" class="form-control" placeholder="Enter your password" required>
+                            <button type="button" class="toggle-password" id="toggleLoginPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="validation-message" id="loginPasswordError"></div>
+                    </div>
+                    
+                    <button type="submit" class="auth-btn" id="loginBtn">
+                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    </button>
+                </form>
+                
+                <!-- Register Form -->
+                <form id="registerForm" class="hidden">
+                    <div class="form-group">
+                        <label for="registerName">Full Name</label>
+                        <input type="text" id="registerName" class="form-control" placeholder="Enter your full name" required>
+                        <div class="validation-message" id="registerNameError"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="registerEmail">Email Address</label>
+                        <input type="email" id="registerEmail" class="form-control" placeholder="Enter your email" required>
+                        <div class="validation-message" id="registerEmailError"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="registerPassword">Password</label>
+                        <div class="password-input">
+                            <input type="password" id="registerPassword" class="form-control" placeholder="Create a strong password" required>
+                            <button type="button" class="toggle-password" id="toggleRegisterPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="validation-message" id="registerPasswordError"></div>
+                        <div class="password-strength">
+                            <div class="strength-bar">
+                                <div class="strength-fill" id="passwordStrengthBar"></div>
+                            </div>
+                            <div class="strength-text" id="passwordStrengthText">Password strength</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <div class="password-input">
+                            <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm your password" required>
+                            <button type="button" class="toggle-password" id="toggleConfirmPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="validation-message" id="confirmPasswordError"></div>
+                    </div>
+                    
+                    <button type="submit" class="auth-btn" id="registerBtn">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                </form>
+                
+                <div class="auth-divider">
+                    <span>Or continue with</span>
+                </div>
+                
+                <button class="gmail-btn" id="gmailAuthBtn">
+                    <i class="fab fa-google"></i> Continue with Gmail
+                </button>
+                
+                <div class="auth-footer">
+                    By continuing, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <div class="app-name">NexusChat</div>
+            </div>
+            
+            <div class="user-profile">
+                <div class="user-avatar" id="currentUserAvatar">U</div>
+                <div class="user-info">
+                    <h3 id="currentUserName">User Name</h3>
+                    <p>Online</p>
+                </div>
+                <button class="logout-btn" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+            
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search conversations...">
+                </div>
+            </div>
+            
+            <div class="conversations" id="conversationsContainer">
+                <!-- Conversation items will be populated here -->
+            </div>
+        </div>
+        
+        <!-- Chat Area -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <div class="mobile-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+                
+                <div class="chat-user">
+                    <div class="chat-user-avatar" id="chatUserAvatar">N</div>
+                    <div class="chat-user-info">
+                        <h3 id="chatUserName">NexusChat</h3>
+                        <p id="chatUserStatus">Select a conversation to start messaging</p>
+                    </div>
+                </div>
+                
+                <div class="chat-actions">
+                    <button class="chat-action-btn">
+                        <i class="fas fa-phone-alt"></i>
+                    </button>
+                    <button class="chat-action-btn">
+                        <i class="fas fa-video"></i>
+                    </button>
+                    <button class="chat-action-btn">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="messages-container" id="messagesContainer">
+                <!-- Welcome Message -->
+                <div class="welcome-message">
+                    <div class="message received">
+                        <div class="message-text">Welcome to NexusChat! Select a conversation from the sidebar to start messaging.</div>
+                        <div class="message-time">Just now</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="input-container">
+                <textarea class="message-input" id="messageInput" placeholder="Type a message..." disabled></textarea>
+                <button class="send-btn" id="sendBtn" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle"></i>
+        <span>Message sent successfully!</span>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+  apiKey: "AIzaSyB1fQdrmOJWDh4dEdQTFucj9BUeQmH_yew",
+  authDomain: "whatsapp-web-944f9.firebaseapp.com",
+  databaseURL: "https://whatsapp-web-944f9-default-rtdb.firebaseio.com",
+  projectId: "whatsapp-web-944f9",
+  storageBucket: "whatsapp-web-944f9.firebasestorage.app",
+  messagingSenderId: "975370289693",
+  appId: "1:975370289693:web:23390019b3b1c216a0fcf4"
+};
+
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // DOM Elements
+        const authContainer = document.getElementById('authContainer');
+        const loginTab = document.getElementById('loginTab');
+        const registerTab = document.getElementById('registerTab');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const registerName = document.getElementById('registerName');
+        const registerEmail = document.getElementById('registerEmail');
+        const registerPassword = document.getElementById('registerPassword');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const gmailAuthBtn = document.getElementById('gmailAuthBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const toggleLoginPassword = document.getElementById('toggleLoginPassword');
+        const toggleRegisterPassword = document.getElementById('toggleRegisterPassword');
+        const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const passwordStrengthBar = document.getElementById('passwordStrengthBar');
+        const passwordStrengthText = document.getElementById('passwordStrengthText');
+        
+        const currentUserAvatar = document.getElementById('currentUserAvatar');
+        const currentUserName = document.getElementById('currentUserName');
+        const chatUserAvatar = document.getElementById('chatUserAvatar');
+        const chatUserName = document.getElementById('chatUserName');
+        const chatUserStatus = document.getElementById('chatUserStatus');
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const notification = document.getElementById('notification');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.querySelector('.sidebar');
+        const conversationsContainer = document.getElementById('conversationsContainer');
+
+        // Validation elements
+        const loginEmailError = document.getElementById('loginEmailError');
+        const loginPasswordError = document.getElementById('loginPasswordError');
+        const registerNameError = document.getElementById('registerNameError');
+        const registerEmailError = document.getElementById('registerEmailError');
+        const registerPasswordError = document.getElementById('registerPasswordError');
+        const confirmPasswordError = document.getElementById('confirmPasswordError');
+
+        // Application state
+        let currentUser = null;
+        let selectedUser = null;
+        let users = [];
+
+        // Mock users for demonstration
+        const mockUsers = [
+            { id: 'user1', name: 'Alex Johnson', email: 'alex@example.com', isOnline: true },
+            { id: 'user2', name: 'Maria Garcia', email: 'maria@example.com', isOnline: true },
+            { id: 'user3', name: 'David Smith', email: 'david@example.com', isOnline: false },
+            { id: 'user4', name: 'Sarah Williams', email: 'sarah@example.com', isOnline: true },
+            { id: 'user5', name: 'James Wilson', email: 'james@example.com', isOnline: true },
+            { id: 'user6', name: 'Emma Thompson', email: 'emma@example.com', isOnline: false }
+        ];
+
+        // Validation patterns
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const namePattern = /^[a-zA-Z\s]{2,30}$/;
+
+        // Initialize the app
+        function initApp() {
+            // Event listeners for auth tabs
+            loginTab.addEventListener('click', () => switchAuthTab('login'));
+            registerTab.addEventListener('click', () => switchAuthTab('register'));
+            
+            // Form submissions
+            loginForm.addEventListener('submit', handleLogin);
+            registerForm.addEventListener('submit', handleRegister);
+            
+            // Real-time validation
+            loginEmail.addEventListener('input', () => validateEmail(loginEmail, loginEmailError));
+            loginPassword.addEventListener('input', () => validatePassword(loginPassword, loginPasswordError, false));
+            
+            registerName.addEventListener('input', () => validateName(registerName, registerNameError));
+            registerEmail.addEventListener('input', () => validateEmail(registerEmail, registerEmailError));
+            registerPassword.addEventListener('input', () => {
+                validatePassword(registerPassword, registerPasswordError, true);
+                updatePasswordStrength(registerPassword.value);
+            });
+            confirmPassword.addEventListener('input', () => validateConfirmPassword(confirmPassword, registerPassword, confirmPasswordError));
+            
+            // Gmail authentication
+            gmailAuthBtn.addEventListener('click', handleGmailAuth);
+            
+            // Logout
+            logoutBtn.addEventListener('click', handleLogout);
+            
+            // Password visibility toggles
+            toggleLoginPassword.addEventListener('click', () => togglePasswordVisibility('loginPassword', toggleLoginPassword));
+            toggleRegisterPassword.addEventListener('click', () => togglePasswordVisibility('registerPassword', toggleRegisterPassword));
+            toggleConfirmPassword.addEventListener('click', () => togglePasswordVisibility('confirmPassword', toggleConfirmPassword));
+            
+            // Chat functionality
+            sendBtn.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('active');
+            });
+
+            // Check if user is already logged in (for demo purposes)
+            checkAuthState();
+            
+            // Populate conversations
+            populateConversations();
+        }
+
+        // Switch between login and register tabs
+        function switchAuthTab(tab) {
+            if (tab === 'login') {
+                loginTab.classList.add('active');
+                registerTab.classList.remove('active');
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                clearValidationMessages();
+            } else {
+                registerTab.classList.add('active');
+                loginTab.classList.remove('active');
+                registerForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+                clearValidationMessages();
+            }
+        }
+
+        // Clear all validation messages
+        function clearValidationMessages() {
+            const messages = document.querySelectorAll('.validation-message');
+            messages.forEach(msg => {
+                msg.textContent = '';
+                msg.className = 'validation-message';
+            });
+            
+            const inputs = document.querySelectorAll('.form-control');
+            inputs.forEach(input => {
+                input.classList.remove('error', 'success');
+            });
+        }
+
+        // Toggle password visibility
+        function togglePasswordVisibility(passwordFieldId, toggleButton) {
+            const passwordField = document.getElementById(passwordFieldId);
+            const icon = toggleButton.querySelector('i');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordField.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Validate email
+        function validateEmail(input, errorElement) {
+            const value = input.value.trim();
+            
+            if (!value) {
+                showValidationError(input, errorElement, 'Email is required');
+                return false;
+            }
+            
+            if (!emailPattern.test(value)) {
+                showValidationError(input, errorElement, 'Please enter a valid email address');
+                return false;
+            }
+            
+            showValidationSuccess(input, errorElement, 'Email looks good!');
+            return true;
+        }
+
+        // Validate name
+        function validateName(input, errorElement) {
+            const value = input.value.trim();
+            
+            if (!value) {
+                showValidationError(input, errorElement, 'Full name is required');
+                return false;
+            }
+            
+            if (!namePattern.test(value)) {
+                showValidationError(input, errorElement, 'Name should be 2-30 characters with letters only');
+                return false;
+            }
+            
+            showValidationSuccess(input, errorElement, 'Name looks good!');
+            return true;
+        }
+
+        // Validate password
+        function validatePassword(input, errorElement, isRegistration = false) {
+            const value = input.value;
+            
+            if (!value) {
+                showValidationError(input, errorElement, 'Password is required');
+                return false;
+            }
+            
+            if (isRegistration) {
+                if (value.length < 8) {
+                    showValidationError(input, errorElement, 'Password must be at least 8 characters');
+                    return false;
+                }
+                
+                if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
+                    showValidationError(input, errorElement, 'Include uppercase, lowercase, and numbers');
+                    return false;
+                }
+            } else {
+                if (value.length < 6) {
+                    showValidationError(input, errorElement, 'Password must be at least 6 characters');
+                    return false;
+                }
+            }
+            
+            showValidationSuccess(input, errorElement, 'Password looks good!');
+            return true;
+        }
+
+        // Validate confirm password
+        function validateConfirmPassword(confirmInput, passwordInput, errorElement) {
+            const confirmValue = confirmInput.value;
+            const passwordValue = passwordInput.value;
+            
+            if (!confirmValue) {
+                showValidationError(confirmInput, errorElement, 'Please confirm your password');
+                return false;
+            }
+            
+            if (confirmValue !== passwordValue) {
+                showValidationError(confirmInput, errorElement, 'Passwords do not match');
+                return false;
+            }
+            
+            showValidationSuccess(confirmInput, errorElement, 'Passwords match!');
+            return true;
+        }
+
+        // Update password strength indicator
+        function updatePasswordStrength(password) {
+            let strength = 0;
+            let text = 'Password strength';
+            let color = '#64748b';
+            
+            if (password.length >= 8) strength += 25;
+            if (/[a-z]/.test(password)) strength += 25;
+            if (/[A-Z]/.test(password)) strength += 25;
+            if (/\d/.test(password)) strength += 25;
+            
+            if (strength <= 25) {
+                text = 'Weak';
+                color = '#ef4444';
+            } else if (strength <= 50) {
+                text = 'Fair';
+                color = '#f59e0b';
+            } else if (strength <= 75) {
+                text = 'Good';
+                color = '#10b981';
+            } else {
+                text = 'Strong';
+                color = '#10b981';
+            }
+            
+            passwordStrengthBar.style.width = `${strength}%`;
+            passwordStrengthBar.style.background = color;
+            passwordStrengthText.textContent = text;
+            passwordStrengthText.style.color = color;
+        }
+
+        // Show validation error
+        function showValidationError(input, errorElement, message) {
+            input.classList.remove('success');
+            input.classList.add('error');
+            errorElement.textContent = message;
+            errorElement.className = 'validation-message error show';
+        }
+
+        // Show validation success
+        function showValidationSuccess(input, errorElement, message) {
+            input.classList.remove('error');
+            input.classList.add('success');
+            errorElement.textContent = message;
+            errorElement.className = 'validation-message success show';
+        }
+
+        // Handle email/password login
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const email = loginEmail.value.trim();
+            const password = loginPassword.value.trim();
+
+            // Validate form
+            const isEmailValid = validateEmail(loginEmail, loginEmailError);
+            const isPasswordValid = validatePassword(loginPassword, loginPasswordError, false);
+            
+            if (!isEmailValid || !isPasswordValid) {
+                showNotification('Please fix the errors in the form', 'error');
+                return;
+            }
+
+            // Show loading state
+            loginBtn.classList.add('loading');
+            loginBtn.disabled = true;
+
+            // In a real app, we would use Firebase Auth here
+            // For demo, we'll simulate authentication
+            simulateAuth(email, password, 'login');
+        }
+
+        // Handle user registration
+        function handleRegister(e) {
+            e.preventDefault();
+            
+            const name = registerName.value.trim();
+            const email = registerEmail.value.trim();
+            const password = registerPassword.value.trim();
+            const confirm = confirmPassword.value.trim();
+
+            // Validate form
+            const isNameValid = validateName(registerName, registerNameError);
+            const isEmailValid = validateEmail(registerEmail, registerEmailError);
+            const isPasswordValid = validatePassword(registerPassword, registerPasswordError, true);
+            const isConfirmValid = validateConfirmPassword(confirmPassword, registerPassword, confirmPasswordError);
+            
+            if (!isNameValid || !isEmailValid || !isPasswordValid || !isConfirmValid) {
+                showNotification('Please fix the errors in the form', 'error');
+                return;
+            }
+
+            // Show loading state
+            registerBtn.classList.add('loading');
+            registerBtn.disabled = true;
+
+            // In a real app, we would use Firebase Auth here
+            // For demo, we'll simulate registration
+            simulateAuth(email, password, 'register', name);
+        }
+
+        // Handle Gmail authentication
+        function handleGmailAuth() {
+            // In a real app, we would use Firebase Google Auth here
+            // For demo, we'll simulate Gmail auth
+            showNotification('Redirecting to Gmail authentication...', 'success');
+            
+            setTimeout(() => {
+                const randomUser = mockUsers[Math.floor(Math.random() * mockUsers.length)];
+                completeAuth({
+                    id: 'gmailUser',
+                    name: randomUser.name,
+                    email: randomUser.email
+                });
+            }, 1500);
+        }
+
+        // Simulate authentication (for demo purposes)
+        function simulateAuth(email, password, type, name = null) {
+            showNotification(`${type === 'login' ? 'Signing in' : 'Creating account'}...`, 'success');
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                // For demo, we'll accept any valid email and password
+                if (email && password) {
+                    completeAuth({
+                        id: type === 'login' ? 'existingUser' : 'newUser',
+                        name: name || email.split('@')[0],
+                        email: email
+                    });
+                } else {
+                    showNotification('Authentication failed. Please try again.', 'error');
+                }
+                
+                // Reset loading state
+                loginBtn.classList.remove('loading');
+                loginBtn.disabled = false;
+                registerBtn.classList.remove('loading');
+                registerBtn.disabled = false;
+            }, 2000);
+        }
+
+        // Complete authentication process
+        function completeAuth(userData) {
+            currentUser = userData;
+            
+            // Update UI
+            currentUserAvatar.textContent = userData.name.charAt(0).toUpperCase();
+            currentUserName.textContent = userData.name;
+            
+            // Hide auth container
+            authContainer.classList.add('hidden');
+            
+            showNotification(`Welcome to NexusChat, ${userData.name}!`, 'success');
+        }
+
+        // Handle logout
+        function handleLogout() {
+            currentUser = null;
+            
+            // Reset forms
+            loginForm.reset();
+            registerForm.reset();
+            clearValidationMessages();
+            
+            // Reset password strength
+            passwordStrengthBar.style.width = '0%';
+            passwordStrengthText.textContent = 'Password strength';
+            passwordStrengthText.style.color = '#64748b';
+            
+            // Show auth container
+            authContainer.classList.remove('hidden');
+            switchAuthTab('login');
+            
+            // Reset chat UI
+            messagesContainer.innerHTML = `
+                <div class="welcome-message">
+                    <div class="message received">
+                        <div class="message-text">Welcome to NexusChat! Select a conversation from the sidebar to start messaging.</div>
+                        <div class="message-time">Just now</div>
+                    </div>
+                </div>
+            `;
+            
+            chatUserName.textContent = 'NexusChat';
+            chatUserStatus.textContent = 'Select a conversation to start messaging';
+            chatUserAvatar.textContent = 'N';
+            
+            messageInput.disabled = true;
+            sendBtn.disabled = true;
+            
+            showNotification('You have been logged out', 'success');
+        }
+
+        // Check auth state (for demo purposes)
+        function checkAuthState() {
+            // In a real app, we would check Firebase Auth state
+            // For demo, we'll assume user is not logged in
+        }
+
+        // Populate conversations list
+        function populateConversations() {
+            conversationsContainer.innerHTML = '';
+            
+            mockUsers.forEach(user => {
+                const lastMessage = getLastMessage(user.id);
+                const unreadCount = Math.floor(Math.random() * 3); // Random unread count for demo
+                
+                const conversationItem = document.createElement('div');
+                conversationItem.className = 'conversation-item';
+                conversationItem.innerHTML = `
+                    <div class="conversation-avatar">${user.name.charAt(0).toUpperCase()}</div>
+                    <div class="conversation-info">
+                        <h4>${user.name}</h4>
+                        <p>${lastMessage}</p>
+                    </div>
+                    <div class="conversation-meta">
+                        <div class="conversation-time">${formatTimeShort(new Date())}</div>
+                        ${unreadCount > 0 ? `<div class="unread-count">${unreadCount}</div>` : ''}
+                    </div>
+                `;
+                
+                conversationItem.addEventListener('click', () => selectUser(user));
+                conversationsContainer.appendChild(conversationItem);
+            });
+        }
+
+        // Get last message for a user (for demo purposes)
+        function getLastMessage(userId) {
+            const messages = [
+                "Hey there! How are you?",
+                "I sent you the documents",
+                "Let's meet tomorrow",
+                "Did you see my last message?",
+                "The project is almost ready",
+                "Can you review this for me?",
+                "Thanks for your help!",
+                "See you later!",
+                "I'll be there in 10 minutes"
+            ];
+            
+            return messages[Math.floor(Math.random() * messages.length)];
+        }
+
+        // Select a user to chat with
+        function selectUser(user) {
+            if (!currentUser) {
+                showNotification('Please sign in to start chatting', 'error');
+                return;
+            }
+            
+            selectedUser = user;
+            
+            // Update UI
+            document.querySelectorAll('.conversation-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            // Update chat header
+            chatUserAvatar.textContent = user.name.charAt(0).toUpperCase();
+            chatUserName.textContent = user.name;
+            chatUserStatus.textContent = user.isOnline ? 'Online' : 'Offline';
+            chatUserStatus.style.color = user.isOnline ? 'var(--success)' : 'var(--gray)';
+            
+            // Enable message input
+            messageInput.disabled = false;
+            sendBtn.disabled = false;
+            messageInput.focus();
+            
+            // Load messages
+            loadMessages();
+            
+            // Close sidebar on mobile
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('active');
+            }
+        }
+
+        // Load messages for the selected user
+        function loadMessages() {
+            // Clear messages container
+            messagesContainer.innerHTML = '';
+            
+            // In a real app, we would fetch messages from Firebase
+            // For demo, we'll show some sample messages
+            const sampleMessages = [
+                { text: 'Hello there! 👋', sender: selectedUser.id, timestamp: new Date(Date.now() - 3600000) },
+                { text: 'Hi! How are you doing today?', sender: 'currentUser', timestamp: new Date(Date.now() - 3500000) },
+                { text: "I'm doing great, thanks for asking! How about you?", sender: selectedUser.id, timestamp: new Date(Date.now() - 3400000) },
+                { text: "I'm good too. Just working on this new chat application.", sender: 'currentUser', timestamp: new Date(Date.now() - 3300000) },
+                { text: "That's awesome! The UI looks really clean and modern. 😍", sender: selectedUser.id, timestamp: new Date(Date.now() - 3200000) },
+                { text: "Thanks! I'm glad you like it. I put a lot of effort into the design.", sender: 'currentUser', timestamp: new Date(Date.now() - 3100000) }
+            ];
+            
+            sampleMessages.forEach(msg => {
+                displayMessage(msg);
+            });
+            
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Send a message
+        function sendMessage() {
+            if (!currentUser) {
+                showNotification('Please sign in to send messages', 'error');
+                return;
+            }
+            
+            const messageText = messageInput.value.trim();
+            
+            if (!messageText || !selectedUser) return;
+            
+            // Create message object
+            const message = {
+                text: messageText,
+                sender: 'currentUser',
+                receiver: selectedUser.id,
+                timestamp: new Date()
+            };
+            
+            // In a real app, we would save to Firebase here
+            // For demo, we'll just display it
+            displayMessage(message);
+            
+            // Clear input
+            messageInput.value = '';
+            
+            // Show notification
+            showNotification('Message sent!', 'success');
+            
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Simulate a reply after a short delay
+            setTimeout(() => {
+                const replies = [
+                    "That's interesting! Tell me more.",
+                    "I see what you mean. That makes sense.",
+                    "Thanks for sharing that with me.",
+                    "Let me think about that for a moment.",
+                    "I completely agree with you!",
+                    "That's a good point. I hadn't considered that.",
+                    "Wow, that's really cool! 😄",
+                    "I'm not sure about that. Can you explain further?"
+                ];
+                const randomReply = replies[Math.floor(Math.random() * replies.length)];
+                
+                const replyMessage = {
+                    text: randomReply,
+                    sender: selectedUser.id,
+                    receiver: 'currentUser',
+                    timestamp: new Date()
+                };
+                
+                displayMessage(replyMessage);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 1000 + Math.random() * 2000);
+        }
+
+        // Display a message in the chat
+        function displayMessage(message) {
+            const messageElement = document.createElement('div');
+            const isSent = message.sender === 'currentUser';
+            
+            messageElement.className = `message ${isSent ? 'sent' : 'received'}`;
+            messageElement.innerHTML = `
+                <div class="message-text">${message.text}</div>
+                <div class="message-time">${formatTime(message.timestamp)}</div>
+            `;
+            
+            messagesContainer.appendChild(messageElement);
+        }
+
+        // Format time for display
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        // Format time for conversations list
+        function formatTimeShort(timestamp) {
+            const date = new Date(timestamp);
+            return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        // Show notification
+        function showNotification(message, type) {
+            const icon = notification.querySelector('i');
+            notification.textContent = message;
+            notification.className = 'notification';
+            
+            if (type === 'success') {
+                notification.classList.add('success');
+                icon.className = 'fas fa-check-circle';
+            } else if (type === 'error') {
+                notification.classList.add('error');
+                icon.className = 'fas fa-exclamation-circle';
+            } else if (type === 'warning') {
+                notification.classList.add('warning');
+                icon.className = 'fas fa-exclamation-triangle';
+            } else {
+                icon.className = 'fas fa-info-circle';
+            }
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize the app when the page loads
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
