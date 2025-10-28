@@ -486,11 +486,7 @@
         }
 
         // Select a user to chat with
-        function selectUser(user) {
-            selectedUser = user;
-            
-            // Update UI
-            document.querySelectorAll('.user-item').forEach(item => {
+        function selectUser('.user-item').forEach(item => {
                 item.classList.remove('active');
             });
             event.currentTarget.classList.add('active');
